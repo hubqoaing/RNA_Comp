@@ -13,6 +13,16 @@ class DirSystem(dict):
          'hisat_dir'             : "%s/01.2.hisat"          % (home_dir),   \
          'tophat_mannual_dir'    : "%s/01.3.tophat_Mannual" % (home_dir),   \
          'hisat_mannual_dir'     : "%s/01.4.hisat_Mannual"  % (home_dir),   \
+         'bam_dir'               : "%s/01.bam"              % (home_dir),   \
+         'HTSeq_result_dir'      : "%s/02.HTSeq_result"     % (home_dir),   \
+         'HTSeq_known_dir'       : "%s/02.1.HTSeq_known"    % (home_dir),   \
+         'HTSeq_unknown_dir'     : "%s/02.2.HTSeq_unknown"  % (home_dir),   \
+         'cufflinks_unknown_dir' : "%s/03.cufflinks_unknown"% (home_dir),   \
+         'cuffquant_dir'         : "%s/04.cuffquant"        % (home_dir),   \
+         'cuffnorm_dir'          : "%s/05.cuffnorm"         % (home_dir),   \
+         'cuffquant_ERCC_dir'    : "%s/04.1.cuffquant.ERCC" % (home_dir),   \
+         'cuffnorm_ERCC_dir'     : "%s/05.1.cuffnorm.ERCC"  % (home_dir),   \
+         'repeat_counts_dir'     : "%s/06.repeat_counts"    % (home_dir),   \
       }
 ```
 to put the results. Raw fq data should be put into 00.0.raw_data at the very beginning.
@@ -23,20 +33,31 @@ Then , build-up a software system class:
 ### Using your own path for these softwares.
 class UsedSoftware(object):
    def __init__(self):
-      self.py        = "/home/huboqiang/anaconda/bin/python"
-      self.pl        = "/data/Analysis/huboqiang/lib/local_perl/bin/perl"
-      self.fastqDump = "/data/Analysis/huboqiang/software/sratoolkit.2.4.5-2-centos_linux64/bin/fastq-dump"
-      self.tophat    = "/data/Analysis/huboqiang/software/tophat-2.0.12.Linux_x86_64/tophat"
-      self.hisat     = "/data/Analysis/huboqiang/software/hisat-0.1.5-beta/hisat"
-      self.samtools  = "/data/Analysis/huboqiang/software/samtools-0.1.18/samtools"
-      self.bedtools  = "/data/Analysis/huboqiang/software/bedtools-2.17.0/bin/bedtools"
+      self.py        = ".../anaconda/bin/python"
+      self.pl        = ".../lib/local_perl/bin/perl"
+      self.fastqDump = ".../software/sratoolkit.2.4.5-2-centos_linux64/bin/fastq-dump"
+      self.tophat    = ".../software/tophat-2.0.12.Linux_x86_64/tophat"
+      self.hisat     = ".../software/hisat-0.1.5-beta/hisat"
+      self.samtools  = ".../software/samtools-0.1.18/samtools"
+      self.bedtools  = ".../software/bedtools-2.17.0/bin/bedtools"
+      self.cflk_dir  = ".../software/cufflinks-2.2.1.Linux_x86_64"
+      self.deseq     = ".../anaconda/lib/python2.7/site-packages/HTSeq/scripts/count.py"
+      self.bgzip     = ".../local/bin/bgzip"
+      self.tabix     = ".../local/bin/tabix"
 ```
 
 Next, find the input files. You can download these files in UCSC or so on and then using own-scripts to merge the ERCC information, and generate files in this format.
 ``` bash
-==> samp_info <==
+==> sample_GSM981249.xls <==
 sample_name		sample_brief_name		stage			sample_group	ERCC_times	RFP_polyA	GFP_polyA	CRE_polyA	data_type	rename
 SRR534301		test_SRR534301			RealData		RNA            0.0    		0.0    		0.0		   0.0		 	PE          SRR534301
+
+==> sample_GSM981249.comp.xls <==
+sample_name		sample_brief_name		stage			sample_group	ERCC_times	RFP_polyA	GFP_polyA	CRE_polyA	data_type	rename
+SRR534301_1		test_SRR534301_1		RealData		RNA            0.0    		0.0    		0.0		   0.0		 	PE          SRR534301_TophatTrans
+SRR534301_2		test_SRR534301_2		RealData		RNA            0.0    		0.0    		0.0		   0.0		 	PE          SRR534301_HisatTrans
+SRR534301_3		test_SRR534301_3		RealData		RNA            0.0    		0.0    		0.0		   0.0		 	PE          SRR534301_TophatMannual
+SRR534301_4		test_SRR534301_4		RealData		RNA            0.0    		0.0    		0.0		   0.0		 	PE          SRR534301_HisatMannual
 
 ==> bt_index_base <==
 hg19 genome fa + ERCC + RGC information. Then generate the index using bowtie2-build.
@@ -131,6 +152,7 @@ chr1	hg19_rmsk	exon	43242	44835	7010	+	.	gene_id "LINE_1:43242-44835"; transcrip
 
 Now running the script below:
 
+Step1: run_mRNA.py
 ```python
 
 from __future__ import division
@@ -148,5 +170,29 @@ samp_process.run_tophat_mannual()
 
 samp_process.run_hisat_tran()
 samp_process.run_hisat_mannual()
+```
+
+After step1, rename bam files and then run scripts in step2.
+
+```bash
+mkdir 01.bam
+mkdir 01.bam/test_SRR534301_1 && ln -s /datd/huboqiang/test_hisat_tophat/01.1.tophat/test_SRR534301/*          01.bam/test_SRR534301_1
+mkdir 01.bam/test_SRR534301_2 && ln -s /datd/huboqiang/test_hisat_tophat/01.2.hisat/test_SRR534301/*           01.bam/test_SRR534301_2
+mkdir 01.bam/test_SRR534301_3 && ln -s /datd/huboqiang/test_hisat_tophat/01.3.tophat_Mannual/test_SRR534301/*  01.bam/test_SRR534301_3
+mkdir 01.bam/test_SRR534301_4 && ln -s /datd/huboqiang/test_hisat_tophat/01.4.hisat_Mannual/test_SRR534301/*   01.bam/test_SRR534301_4
+```
+
+Step2: run_comp.py
+```python
+
+from __future__ import division
+import module02_RNA_Quantification as m02
+
+dir_name = DirSystem()
+sftw_name= UsedSoftware()
+
+samp_mRNAQ = m02.RnaQuantification( samp_info,bt_index_base,genome_gtf,genome_gtf_wl,intragenic_bed, rmsk_gtf, rmsk_bed,  dir_name['dir'],sftw_name )
+samp_mRNAQ.load_samp()
+samp_mRNAQ.RNA_QuantPipe()
 ```
 
