@@ -9,10 +9,6 @@ class DirSystem(dict):
       self['dir'] = {                                                       \
          'raw_data'              : "%s/z.sra_GSM981249"     % (home_dir),   \
          'fastq_data'            : "%s/00.fastq"            % (home_dir),   \
-         'tophat_dir'            : "%s/01.1.tophat"         % (home_dir),   \
-         'hisat_dir'             : "%s/01.2.hisat"          % (home_dir),   \
-         'tophat_mannual_dir'    : "%s/01.3.tophat_Mannual" % (home_dir),   \
-         'hisat_mannual_dir'     : "%s/01.4.hisat_Mannual"  % (home_dir),   \
          'bam_dir'               : "%s/01.bam"              % (home_dir),   \
          'HTSeq_result_dir'      : "%s/02.HTSeq_result"     % (home_dir),   \
          'HTSeq_known_dir'       : "%s/02.1.HTSeq_known"    % (home_dir),   \
@@ -22,7 +18,12 @@ class DirSystem(dict):
          'cuffnorm_dir'          : "%s/05.cuffnorm"         % (home_dir),   \
          'cuffquant_ERCC_dir'    : "%s/04.1.cuffquant.ERCC" % (home_dir),   \
          'cuffnorm_ERCC_dir'     : "%s/05.1.cuffnorm.ERCC"  % (home_dir),   \
+         'cuffquant_k_dir'       : "%s/04.cuffquant_known"  % (home_dir),   \
+         'cuffnorm_k_dir'        : "%s/05.cuffnorm_known"   % (home_dir),   \
+         'cuffquant_ERCC_k_dir'  : "%s/04.1.cuffquant_known.ERCC" % (home_dir),   \
+         'cuffnorm_ERCC_k_dir'   : "%s/05.1.cuffnorm_known.ERCC"  % (home_dir),   \
          'repeat_counts_dir'     : "%s/06.repeat_counts"    % (home_dir),   \
+         'repeat_mrg_dir'        : "%s/07.repeat_merge"     % (home_dir),   \
       }
 ```
 to put the results. Raw fq data should be put into 00.0.raw_data at the very beginning.
