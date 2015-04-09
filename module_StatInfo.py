@@ -196,13 +196,13 @@ class HisatStat(MappingStat):
    def __determine_item(self,ll_lines):
       ### Pair end 
       if len(ll_lines) == 15:
-         self['statInfo']['totalRead']             = int(ll_lines[0][0])
-         self['statInfo']['mappedRead']            = int(ll_lines[3][0]) + int(ll_lines[4][0]) + int(ll_lines[7][0]) + int( (int(ll_lines[12][0])+int(ll_lines[13][0]) )/2 );
-         self['statInfo']['mappedPair']            = int(ll_lines[3][0]) + int(ll_lines[4][0]) + int(ll_lines[7][0])
-         self['statInfo']['mappingRate']           = ll_lines[-1][0]
+         self['statInfo']['totalRead']             = int(ll_lines[0][0])*2
+         self['statInfo']['mappedRead']            = int(ll_lines[3][0])*2 + int(ll_lines[4][0])*2 + int(ll_lines[7][0])*2 + int(ll_lines[12][0])+int(ll_lines[13][0])
+         self['statInfo']['mappedPair']            = int(ll_lines[3][0])*2 + int(ll_lines[4][0])*2 + int(ll_lines[7][0])*2
+         self['statInfo']['mappingRate']           = ll_lines[-1][0]*2
          self['statInfo']['mappingConcordantRate'] = ll_lines[3][1][ 1:-1 ]
-         self['statInfo']['concordantPair']        = int(ll_lines[3][0]) + int(ll_lines[4][0])
-         self['statInfo']['disconcordantPair']     = int(ll_lines[7][0])
+         self['statInfo']['concordantPair']        = int(ll_lines[3][0])*2 + int(ll_lines[4][0])*2
+         self['statInfo']['disconcordantPair']     = int(ll_lines[7][0])*2
       ### Single end
       else:
          self['statInfo']['totalRead']             = int(ll_lines[0][0])
