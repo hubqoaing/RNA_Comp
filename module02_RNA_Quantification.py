@@ -44,8 +44,8 @@ class RnaQuantification(dict):
          f = line.split()
          samp       = f[0]
          brief_name = f[1]
-         ltype      = f[2]
-         stage      = f[3]
+         stage      = f[2]
+         ltype      = f[3]
          ERCC_dilute= float( f[4] )
          RFP_mols   = float( f[5] )
          GFP_mols   = float( f[6] )
@@ -62,8 +62,7 @@ class RnaQuantification(dict):
          self['sam_info']['CRE_mols'][ samp ]   = CRE_mols
          self['sam_info']['data_type'][samp ]   = data_type
 
-         if stage not in self['stage']['name']:
-            self['stage']['name'].append( stage )
+         self['stage']['name'].append( stage )
          if stage not in self['sam_info']['stage_sam']:
             self['sam_info']['stage_sam'][stage] = []
             
@@ -72,16 +71,17 @@ class RnaQuantification(dict):
    
    def RNA_QuantPipe(self):
       new_trans = m_cuff.QuantPipe( self['sam_info'], self['sample'], self['infile']['genome_file'], self['infile']['anno_file_refERCC'], self['infile']['anno_file'], self['infile']['intragenic_bed'], self['infile']['rmsk_gtf'],self['infile']['rmsk_bed'], self['dir_name'],self['sftw_name'] )
-      new_trans.run_HTSeq_known()
-      new_trans.run_cufflinks_u()
-      new_trans.run_cuffcomp_novo_trans()
-      new_trans.run_HTSeq_unknown()
-      new_trans.RPKM_novo_trans()
+#      new_trans.run_HTSeq_known()
+#      new_trans.run_cufflinks_u()
+#      new_trans.run_cuffcomp_novo_trans()
+#      new_trans.run_HTSeq_unknown()
+#      new_trans.RPKM_novo_trans()
+      
       new_trans.merge_novo_known_GTF()
       new_trans.run_cuffquant()
-      new_trans.run_cuffnorm()
+      new_trans.run_cuffnorm( self['stage']['name'] )
       new_trans.run_cuffquant_ERCC()
-      new_trans.run_cuffnorm_ERCC()
+      new_trans.run_cuffnorm_ERCC( self['stage']['name'] )
 
 ##      new_trans.makeGTF_withoutERCC()
 ##      new_trans.run_cuffquant_k()
