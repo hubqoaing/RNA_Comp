@@ -176,6 +176,7 @@ samp_process.run_hisat_mannual()
 After step1, rename bam files and then run scripts in step2.
 
 ```bash
+mkdir Database
 mkdir 01.bam
 mkdir 01.bam/test_SRR534301_1 && ln -s /datd/huboqiang/test_hisat_tophat/01.1.tophat/test_SRR534301/*          01.bam/test_SRR534301_1
 mkdir 01.bam/test_SRR534301_2 && ln -s /datd/huboqiang/test_hisat_tophat/01.2.hisat/test_SRR534301/*           01.bam/test_SRR534301_2
