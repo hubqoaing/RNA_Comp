@@ -45,8 +45,11 @@ class QuantPipe(dict):
       
       home_dir          = os.path.abspath('./')
       self.script_dir   = "%s/scripts" % (home_dir)
-      self.bin_dir      = "%s/bin"     % (home_dir)
       self.data_dir     = "%s/Database"% (home_dir)
+      
+      path              = os.path.realpath(__file__)
+      self.bin_dir      = "%s/bin"     % ( "/".join( path.split('/')[:-1] )  )
+      self.mrg_py       = "%s/merge_2Dxls.py" % (self.bin_dir)
 
    def run_HTSeq_known(self):
       
@@ -292,7 +295,7 @@ $cflk_dir/cuffquant      \\
 #      my_job.running_SGE( vf="1000m",maxjob=100 )      
 
 
-   def run_cuffnorm(self):
+   def run_cuffnorm(self,stage):
       sh_file      = "%s/s08.cuffnorm.sh"      % (self.script_dir)
       sh_work_file = "%s/s08.cuffnorm_work.sh" % (self.script_dir)
       
@@ -308,18 +311,27 @@ $cflk_dir/cuffquant      \\
          l_brief.append( brief_name  )
          l_cxb.append(   "%s/%s/abundances.cxb" % (self.cuffquant,brief_name) )
       
+      l_brief = np.array( l_brief,dtype="string" )
+      l_cxb   = np.array( l_cxb  ,dtype="string" )
       
-      list_brief = ",".join( l_brief )
-      list_cxb   = " ".join( l_cxb   )
+      np_stage= np.array( stage,dtype="string" )
       
       sh_info = """
 cflk_dir=$1
 
-$cflk_dir/cuffnorm        \\
-   -p 8  -o %s  -L %s     \\
-   %s                     \\
+$cflk_dir/cuffnorm           \\
+   -p 8  -o %s.Tophat  -L %s \\
+   %s                        \\
    %s
-      """ % ( self.cuffnorm, list_brief, self['infile']['anno_file_merge'], list_cxb )
+
+$cflk_dir/cuffnorm           \\
+   -p 8  -o %s.Hisat   -L %s \\
+   %s                        \\
+   %s
+
+python %s %s.Tophat/genes.fpkm_table %s.Hisat/genes.fpkm_table | awk '{OFS="\\t";print $1,$2,$4,$3,$5}' >%s/genes.fpkm_table
+
+      """ % ( self.cuffnorm, ",".join( l_brief[np_stage=="Tophat"] ), self['infile']['anno_file_merge'], " ".join( l_cxb[np_stage=="Tophat"] ), self.cuffnorm, ",".join( l_brief[np_stage=="Hisat"] ), self['infile']['anno_file_merge'], " ".join( l_cxb[np_stage=="Hisat"]   ),  self.mrg_py,self.cuffnorm,self.cuffnorm,self.cuffnorm )
       
       sh_work = "sh %s %s" % (sh_file,cflk_dir)
       my_job = m_jobs.running_jobs(sh_file,sh_work_file)
@@ -369,14 +381,15 @@ $cflk_dir/cuffquant      \\
 #      my_job.running_SGE( vf="1000m",maxjob=100 )      
 
 
-   def run_cuffnorm_ERCC(self):
+   def run_cuffnorm_ERCC(self,stage):
       sh_file      = "%s/s08.1.cuffnorm.ERCC.sh"      % (self.script_dir)
       sh_work_file = "%s/s08.1.cuffnorm.ERCC_work.sh" % (self.script_dir)
       if not os.path.isdir( self.cuffnorm_ercc ):
          os.mkdir( self.cuffnorm_ercc )
       
       cflk_dir     = self['sftw_name'].cflk_dir
-
+      np_stage= np.array(stage,dtype="string")
+      
       l_brief = []
       l_cxb   = []
       for samp in self['samp']:
@@ -385,17 +398,27 @@ $cflk_dir/cuffquant      \\
          l_cxb.append(   "%s/%s/abundances.cxb" % (self.cuffquant_ercc,brief_name) )
       
       
-      list_brief = ",".join( l_brief )
-      list_cxb   = " ".join( l_cxb   )
+      l_brief = np.array( l_brief,dtype="string" )
+      l_cxb   = np.array( l_cxb  ,dtype="string" )
+      
+      np_stage= np.array( stage,dtype="string" )
       
       sh_info = """
 cflk_dir=$1
 
-$cflk_dir/cuffnorm        \\
-   -p 8  -o %s  -L %s     \\
-   %s                     \\
+$cflk_dir/cuffnorm           \\
+   -p 8  -o %s.Tophat  -L %s \\
+   %s                        \\
    %s
-      """ % ( self.cuffnorm_ercc, list_brief, self['infile']['anno_file_merge_ERCC'], list_cxb )
+
+$cflk_dir/cuffnorm           \\
+   -p 8  -o %s.Hisat   -L %s \\
+   %s                        \\
+   %s
+
+python %s %s.Tophat/genes.fpkm_table %s.Hisat/genes.fpkm_table | awk '{OFS="\\t";print $1,$2,$4,$3,$5}' >%s/genes.fpkm_table
+
+      """ % ( self.cuffnorm_ercc, ",".join( l_brief[np_stage=="Tophat"] ), self['infile']['anno_file_merge_ERCC'], " ".join( l_cxb[np_stage=="Tophat"] ), self.cuffnorm_ercc, ",".join( l_brief[np_stage=="Hisat"] ), self['infile']['anno_file_merge_ERCC'], " ".join( l_cxb[np_stage=="Hisat"]   ),  self.mrg_py,self.cuffnorm_ercc,self.cuffnorm_ercc,self.cuffnorm_ercc )
       
       sh_work = "sh %s  %s" % (sh_file, cflk_dir)
       my_job = m_jobs.running_jobs(sh_file,sh_work_file)
