@@ -43,8 +43,8 @@ class Map_From_sra(dict):
          f = line.split()
          samp       = f[0]
          brief_name = f[1]
-         ltype      = f[2]
-         stage      = f[3]
+         stage      = f[2]
+         ltype      = f[3]
          ERCC_dilute= float( f[4] )
          RFP_mols   = float( f[5] )
          GFP_mols   = float( f[6] )
@@ -141,8 +141,6 @@ $tophat_py  \\
    -o $tophat_dir/$brief_name                                        \\
    $genome                                                           \\
    $fq_dir/$samp_name/$samp_name.1.fq.gz $fq_dir/$samp_name/$samp_name.2.fq.gz
-   
-$samtools sort -n $tophat_dir/$brief_name/accepted_hits.bam $tophat_dir/$brief_name/accepted_hits.order
       """ 
       sh_work = ""
       for samp in self['sample']:
@@ -187,13 +185,10 @@ $tophat_py  \\
    -p 8                                                              \\
    --read-edit-dist 3                                                \\
    --read-realign-edit-dist 3                                        \\
-   --no-sort-bam                                                     \\
    --phred64-quals                                                   \\
    -o $tophat_dir/$brief_name                                        \\
    $genome                                                           \\
    $fq_dir/$samp_name/$samp_name.1.fq.gz $fq_dir/$samp_name/$samp_name.2.fq.gz
-   
-$samtools sort -n $tophat_dir/$brief_name/accepted_hits.bam $tophat_dir/$brief_name/accepted_hits.order
       """ 
       sh_work = ""
       for samp in self['sample']:
@@ -242,7 +237,8 @@ $hisat         -p 8 -x $genome --phred64        \\
    -S /dev/stdout                               \\
    --known-splicesite-infile $splice_file       \\
    2>$hisat_dir/$brief_name/log                |\\
-awk '{if($1 ~ /^@/) print $0; else{ for(i=1;i<=NF;i++) if($i!~/^XS/) printf("%s\\t",$i);else XS0=$i;  XS1=((and($2, 0x10) && and($2, 0x40)) || (and($2,0x80) && !and($2,0x10)))?"XS:A:+":"XS:A:-"; print XS1 } }' | $samtools_exe view -uSb -q 1 - | $samtools_exe sort -n /dev/stdin $hisat_dir/$brief_name/accepted_hits.order
+awk '{if($1 ~ /^@/) print $0; else{ for(i=1;i<=NF;i++) if($i!~/^XS/) printf("%s\\t",$i);else XS0=$i;  XS1=((and($2, 0x10) && and($2, 0x40)) || (and($2,0x80) && !and($2,0x10)))?"XS:A:+":"XS:A:-"; print XS1 } }' | $samtools_exe view -Sb -q 1 - >$hisat_dir/$brief_name/accepted_hits.raw.bam &&\\ 
+$samtools_exe sort -m 2000000000 $hisat_dir/$brief_name/accepted_hits.raw.bam $hisat_dir/$brief_name/accepted_hits
       """ 
       sh_work = ""
       for samp in self['sample']:
@@ -299,7 +295,8 @@ $hisat         -p 8 -x $genome --phred64        \\
    -S /dev/stdout                               \\
    --novel-splicesite-infile  $splice_file      \\
    2>$hisat_dir/$brief_name/log.2              |\\
-awk '{if($1 ~ /^@/) print $0; else{ for(i=1;i<=NF;i++) if($i!~/^XS/) printf("%s\\t",$i);else XS0=$i;  XS1=((and($2, 0x10) && and($2, 0x40)) || (and($2,0x80) && !and($2,0x10)))?"XS:A:+":"XS:A:-"; print XS1 } }' | $samtools_exe view -uSb -q 1 - | $samtools_exe sort -n /dev/stdin $hisat_dir/$brief_name/accepted_hits.order
+awk '{if($1 ~ /^@/) print $0; else{ for(i=1;i<=NF;i++) if($i!~/^XS/) printf("%s\\t",$i);else XS0=$i;  XS1=((and($2, 0x10) && and($2, 0x40)) || (and($2,0x80) && !and($2,0x10)))?"XS:A:+":"XS:A:-"; print XS1 } }' | $samtools_exe view -Sb -q 1 - >$hisat_dir/$brief_name/accepted_hits.raw.bam &&\\ 
+$samtools_exe sort -m 2000000000 $hisat_dir/$brief_name/accepted_hits.raw.bam $hisat_dir/$brief_name/accepted_hits
       """ 
       sh_work = ""
       for samp in self['sample']:
