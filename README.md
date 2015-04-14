@@ -198,3 +198,9 @@ samp_mRNAQ.load_samp()
 samp_mRNAQ.RNA_QuantPipe()
 ```
 
+For the Power Point Presentation in Apr.16 2015 for the 2nd PKU bioinformatics seminar, you can:
+```bash
+cd doc
+pdflatex TophatHisat.tex
+open     TophatHisat.pdf
+```
