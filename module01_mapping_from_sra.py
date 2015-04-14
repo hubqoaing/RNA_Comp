@@ -237,7 +237,7 @@ $hisat         -p 8 -x $genome --phred64        \\
    -S /dev/stdout                               \\
    --known-splicesite-infile $splice_file       \\
    2>$hisat_dir/$brief_name/log                |\\
-awk '{if($1 ~ /^@/) print $0; else{ for(i=1;i<=NF;i++) if($i!~/^XS/) printf("%s\\t",$i);else XS0=$i;  XS1=((and($2, 0x10) && and($2, 0x40)) || (and($2,0x80) && !and($2,0x10)))?"XS:A:+":"XS:A:-"; print XS1 } }' | $samtools_exe view -Sb -q 1 - >$hisat_dir/$brief_name/accepted_hits.raw.bam &&\\ 
+awk '{if($1 ~ /^@/) print $0; else{ for(i=1;i<=NF;i++) if($i!~/^XS/) printf("%s\\t",$i);else XS0=$i;  XS1=((and($2, 0x10) && and($2, 0x40)) || (and($2,0x80) && !and($2,0x10)))?"XS:A:+":"XS:A:-"; print XS1 } }' | awk '{if(length($10)==length($11)){print $0}}' | $samtools_exe view -Sb -q 1 - >$hisat_dir/$brief_name/accepted_hits.raw.bam &&\\ 
 $samtools_exe sort -m 2000000000 $hisat_dir/$brief_name/accepted_hits.raw.bam $hisat_dir/$brief_name/accepted_hits
       """ 
       sh_work = ""
@@ -295,7 +295,7 @@ $hisat         -p 8 -x $genome --phred64        \\
    -S /dev/stdout                               \\
    --novel-splicesite-infile  $splice_file      \\
    2>$hisat_dir/$brief_name/log.2              |\\
-awk '{if($1 ~ /^@/) print $0; else{ for(i=1;i<=NF;i++) if($i!~/^XS/) printf("%s\\t",$i);else XS0=$i;  XS1=((and($2, 0x10) && and($2, 0x40)) || (and($2,0x80) && !and($2,0x10)))?"XS:A:+":"XS:A:-"; print XS1 } }' | $samtools_exe view -Sb -q 1 - >$hisat_dir/$brief_name/accepted_hits.raw.bam &&\\ 
+awk '{if($1 ~ /^@/) print $0; else{ for(i=1;i<=NF;i++) if($i!~/^XS/) printf("%s\\t",$i);else XS0=$i;  XS1=((and($2, 0x10) && and($2, 0x40)) || (and($2,0x80) && !and($2,0x10)))?"XS:A:+":"XS:A:-"; print XS1 } }' | awk '{if(length($10)==length($11)){print $0}}' | $samtools_exe view -Sb -q 1 - >$hisat_dir/$brief_name/accepted_hits.raw.bam &&\\ 
 $samtools_exe sort -m 2000000000 $hisat_dir/$brief_name/accepted_hits.raw.bam $hisat_dir/$brief_name/accepted_hits
       """ 
       sh_work = ""
