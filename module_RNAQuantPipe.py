@@ -84,8 +84,8 @@ grep    -P '^ERCC-|^RGC-'                     $HTS_k_dir/$samp_name/$samp_name.d
 grep "__no_feature" $tophat_dir/$samp_name/accepted_hits.sort_name.gene.sam | grep -v chrM |                                                 \\
 	cat           $tophat_dir/$samp_name/accepted_hits.header.sam /dev/stdin | 		                                                         \\
 	$samtools_exe view -Sb /dev/stdin >$tophat_dir/$samp_name/accepted_hits.genome.bam                                                          && \\
-$samtools_exe sort  -m 200000000 $tophat_dir/$samp_name/accepted_hits.sort_name.gene.sam $tophat_dir/$samp_name/accepted_hits.sort_name.gene   && \\
-$samtools_exe sort  -m 200000000 $tophat_dir/$samp_name/accepted_hits.genome.bam         $tophat_dir/$samp_name/accepted_hits.genome.sort          
+$samtools_exe view -Sb           $tophat_dir/$samp_name/accepted_hits.sort_name.gene.sam >$tophat_dir/$samp_name/accepted_hits.sort_name.gene   && \\
+$samtools_exe sort  -m 200000000 $tophat_dir/$samp_name/accepted_hits.genome.bam          $tophat_dir/$samp_name/accepted_hits.genome.sort          
 rm             $tophat_dir/$samp_name/accepted_hits.sort_name.sam $tophat_dir/$samp_name/accepted_hits.sort_name.bam     $tophat_dir/$samp_name/accepted_hits.genome.bam $tophat_dir/$samp_name/accepted_hits.sort_name.gene.sam
       """
       sh_work = ""
