@@ -631,7 +631,9 @@ $samtools_exe view -F 0x0004 $in_bam |                \\
    grep -v RGC-GFP  | grep -v RGC-mRFP |grep NH:i:1 | \\
    awk '{OFS="\\t"; print $3,$4,$4+length($10),$1 }' >${out_dir}/repeat_result.bed
 
-$bedtools_exe intersect -sorted -loj -a $gtf_bed -b ${out_dir}/repeat_result.bed | \\
+sort -S 10%  -k1V -k2n -k3n ${out_dir}/repeat_result.bed ${out_dir}/repeat_result.sort.bed
+
+$bedtools_exe intersect -sorted -loj -a $gtf_bed -b ${out_dir}/repeat_result.sort.bed | \\
    $py_exe $py_Repeat_Intersect2Count /dev/stdin >${out_dir}/repeat_count.bed
       """
       sh_work = ""
@@ -649,4 +651,3 @@ $bedtools_exe intersect -sorted -loj -a $gtf_bed -b ${out_dir}/repeat_result.bed
       my_job.load_sh_work_file( sh_work )
       my_job.running_multi( cpu=8 )
 #      my_job.running_SGE( vf="500m",maxjob=100 )
-      
