@@ -151,33 +151,35 @@ for i in `cut -f 1 %s/novo_lnc_raw.combined.FPKM0.5_rep0.25.multiExon.genlen | u
                    
       print >>f_out_file, out_info
 
-      l_breif_samp = [ self['sam_info']['samp_brief'][samp] for samp in self['sample'] ]
+      l_brief_samp = [ self['sam_info']['samp_brief'][samp] for samp in self['sample'] ]
 
       '''
          Load refseq reads
       '''
-      HTS_info = m_cnt.CountInfo( self.HTS_k,l_breif_samp,"dexseq_clean",self.HTS )
+      HTS_info = m_cnt.CountInfo( self.HTS_k,l_brief_samp,"dexseq_clean",self.HTS )
       HTS_info.load_mat()
       HTS_info.sam_tot_reads()
       
       self.__get_HTS_clean_split()
       
-      Refseq_info = m_cnt.CountInfo( self.HTS_k,l_breif_samp,"dexseq_clean_refseq",self.HTS )
+      Refseq_info = m_cnt.CountInfo( self.HTS_k,l_brief_samp,"dexseq_clean_refseq",self.HTS )
       Refseq_info.load_mat()
       Refseq_info.sam_tot_reads()
 
-      NONCODE_info = m_cnt.CountInfo( self.HTS_k,l_breif_samp,"dexseq_clean_NONCODE",self.HTS )
+      NONCODE_info = m_cnt.CountInfo( self.HTS_k,l_brief_samp,"dexseq_clean_NONCODE",self.HTS )
       NONCODE_info.load_mat()
       NONCODE_info.sam_tot_reads()
       
-      NSMB_info = m_cnt.CountInfo( self.HTS_k,l_breif_samp,"dexseq_clean_NSMB",self.HTS )
+      NSMB_info = m_cnt.CountInfo( self.HTS_k,l_brief_samp,"dexseq_clean_NSMB",self.HTS )
       NSMB_info.load_mat()
       NSMB_info.sam_tot_reads()
 
-      NeoPass_info = m_cnt.CountInfo( self.HTS_u,l_breif_samp,"dexseq_NeoPass",self.HTS )
+      NeoPass_info = m_cnt.CountInfo( self.HTS_u,l_brief_samp,"dexseq_NeoPass",self.HTS )
       NeoPass_info.load_mat()
       NeoPass_info.sam_tot_reads()
       
+      Cnt_Info = m_cnt.CountInfo(  self.HTS_k, l_brief_samp, "dexseq_ERCC_RGCPloyA", self.HTS  )
+      Cnt_Info.generate_mat()
       
       '''
          Load other information
@@ -239,3 +241,28 @@ for i in `cut -f 1 %s/novo_lnc_raw.combined.FPKM0.5_rep0.25.multiExon.genlen | u
                 mol_RFP , mol_GFP ,mol_CRE , mol_ERCC )
          print  >>f_out_file, out_info
       f_out_file.close()
+      
+      
+   def Repeat_Stat(self):
+
+      l_brief_samp = [ self['sam_info']['samp_brief'][samp] for samp in self['sample'] ]
+     
+      l_align_reads = []
+      for brief_samp in l_brief_samp:
+         Tophat_log  =  "%s/%s/align_summary.txt"           % ( self.tophat,brief_samp )
+
+         if os.path.isfile( Tophat_log ):
+            MapStat_info= Stat.TophatStat( Tophat_log )
+            MapStat_info.read_infile()
+         else:
+            Hisat_log   = "%s/%s/log" % ( self.tophat,brief_samp )
+            MapStat_info= Stat.HisatStat( Hisat_log )
+            MapStat_info.read_infile()
+
+         l_align_reads.append( MapStat_info['statInfo']['mappedRead'] )
+         
+      np_align_reads = np.array( l_align_reads )
+     
+      RepCnt = m_repcnt.RepeatCount( self.repeatCount,l_brief_samp, self.repeat_mrg )
+      RepCnt.generate_mat()
+      RepCnt.element_group_subgroup_FPKM_sum(np_align_reads)
