@@ -1,0 +1,243 @@
+\section{The work flow of Tophat}
+
+\subsection{ Before running: Two important parameters. }
+\begin{frame}[c,fragile]
+	\scriptsize{
+		\begin{block}{ Transcriptome or Genome level? \alert{ -G } }
+			\begin{itemize}
+				\item If -G tag were used, reads would be first mapped to transcriptome rather than genome at the very beginning, then those unmapped reads would be used to find genome-reads, new-transcripts, even fusions(optional). \\ \pause
+				\item As I used to analyse human or mouse data, whose transcriptome were well annotated, so here, -G tag were highly recommanded. \pause
+			\end{itemize}
+		\end{block}
+		\begin{block}{ Keep the tmp files during mapping. \alert{ --keep-tmp } }
+			\begin{itemize}
+				\item	If you simply want to calculate FPKM, find different expressed genes or so on, keep tmp file would be simply a waste of disk-space.   \\ \pause
+				\item But, if you want to search for \alert{fusion gene} or \alert{circular RNAs}, or even to get a \alert{precise result for lincRNA}(Long intergenic noncoding RNA), --keep-tmp tag were recommended while running tophat, which could tell you how tophat pipeline works, and how each tool was used in the whole pipeline.
+			\end{itemize}
+		\end{block}
+	}
+\end{frame}
+
+\subsection{ Step1. Preparing for transcriptome reference.}
+\begin{frame}[c,fragile]
+
+	\begin{block}{ Prepare the junctions. }
+		\begin{lstlisting}
+$tophat_bin_dir/gtf_juncs    \
+   $gtf_dir/genes.gtf        \
+  >$root_dir/genes.juncs
+		\end{lstlisting}
+	\end{block}
+
+	\begin{block}{ Prepare the transcriptome bowtie-fasta. }
+		\begin{lstlisting}
+$tophat_bin_dir/gtf_to_fasta  \
+   $gtf_dir/genes.gtf         \
+   $genome $root_dir/genes.fa
+	
+bowtie2-build 						\
+   $root_dir/genes.fa         \
+   $root_dir/genes
+		\end{lstlisting}
+	\end{block}
+\end{frame}
+
+	
+	
+\subsection{ Step2. Preparing for input reads.}
+\begin{frame}[c,fragile]
+
+
+	\begin{block}{ scripts }
+		\begin{lstlisting}[basicstyle=\tiny]
+# Convert fq to a bam without mapping. Position information were null in this bam and illumina read-id would be convert to a new id (from 1 to total-input reads). (using default parameter)
+### input:  *.1.clean.fq.gz,     *.2.clean.fq.gz
+### output: left_kept_reads.bam	right_kept_reads.bam
+
+$bin_dir/prep_reads                                        \
+    --gtf-annotations $gtf_dir/genes.gtf                   \
+    --gtf-juncs $root_dir/genes.juncs 	                    \
+    --aux-outfile=$root_dir/../prep_reads.info             \
+    --index-outfile=$root_dir/%side%_kept_reads.bam.index  \
+    --sam-header=$root_dir/genome_genome.bwt.samheader.sam \
+    --outfile=$root_dir/%side%_kept_reads.bam              \
+    Input.1.fq.gz Input.2.clean.fq.gz
+		\end{lstlisting}
+	\end{block}
+\end{frame}
+
+
+
+\subsection{ Step3. Mapping to transcriptome.}
+\begin{frame}[c,fragile]
+	\begin{block}{ Why not using BWA directly? }
+		\begin{itemize}
+			\item The different between BWA and tophat is that BWA only do this step, and Tophat did a lot more after this step, and simply using BWA is pair-end mapping.\\ \pause
+			\item Tophat use \alert{single-end} mapping then merge the SE result.
+		\end{itemize}
+	\end{block}
+\end{frame}
+\begin{frame}[c,fragile]
+	\begin{block}{ The \alert{transcriptome-mapped-reads} could be detected via: }
+		\begin{lstlisting}[basicstyle=\tiny]
+### input:  left_kept_reads.bam              (right side is the same)
+### output: left_kept_reads.m2g_um.bam       (not mapped to transcriptome)
+###         left_kept_reads.m2g.bam          (tran-mapped result for genome location)
+### tmp:left_kept_reads.test_step1.bam	(tmp file for bowtie. bowtie result for all prepared reads).
+###     left_kept_reads.test_step2.bam	(tran-mapped result for transcriptome location)
+
+$bin_dir/bam2fastx --all $root_dir/left_kept_reads.bam|    \
+bowtie2 -x $root_dir/genes -                            |  \
+$bin_dir/fix_map_ordering                                  \
+    --sam-header $root_dir/genes.bwt.samheader.sam         \
+    - -                                                    \
+    $root_dir/left_kept_reads.m2g_um.bam                |  \
+$bin_dir/map2gtf                                           \
+    --sam-header $root_dir/genome_genome.bwt.samheader.sam \
+    $root_dir/genes.fa.tlst -                              \
+    $root_dir/left_kept_reads.m2g.bam
+		\end{lstlisting}
+	\end{block}
+\end{frame}
+
+
+
+
+
+
+\subsection{ Step4. Mapping to genome.} 
+\begin{frame}[c,fragile]
+	\begin{block}{ How to deal with \alert{transcriptome-unmapped} reads? }
+		\begin{itemize}
+			\item In BWA-protocal of our lab does, the transcriptome-unmapped reads were discard or then mapped to ensemble, noncode, and then to genome, finally for novo-lincRNA assembling, just as nsmb.2660 did.\\ \pause
+			\item However, as ensemble and noncode  are all annotated based on genome, we can directly \alert{map those reads to genome}, which would get more mapped reads because there might be reads of novo-lincRNA which were not recorded in ensemble, and cannot map to genome because of there were \alert{junction reads in this novo-lincRNA}.
+		\end{itemize}
+	\end{block}
+\end{frame}
+\begin{frame}[c,fragile]
+	\begin{block}{ The \alert{genome-mapped-reads} could be detected via: }
+		\begin{lstlisting}[basicstyle=\tiny]
+### input:  left_kept_reads.m2g_um.bam              (right side is the same)
+### output: left_kept_reads.m2g_um.mapped.bam       (tran NO genome YES)
+###         left_kept_reads.m2g_um.unmapped.bam     (tran NO genome NO )
+### tmp:    left_kept_reads.m2g_um_seg1.fq.z        (divide unmapped 101bp into 4 parts fq )
+###         left_kept_reads.m2g_um_seg2.fq.z
+###         left_kept_reads.m2g_um_seg3.fq.z
+###         left_kept_reads.m2g_um_seg4.fq.z
+
+$bin_dir/bam2fastx                                 \
+    --all $root_dir/left_kept_reads.bam          | \
+bowtie2                                            \
+    -x $genome -                                 | \
+    $bin_dir/fix_map_ordering                      \
+    --sam-header $root_dir/genes.bwt.samheader.sam \
+    - -                                            \
+    $root_dir/left_kept_reads.m2g_um.mapped.bam    \
+    $root_dir/left_kept_reads.m2g_um.unmapped.bam
+		\end{lstlisting}
+	\end{block}
+\end{frame}
+
+
+\subsection{ Step5. Mapping to genome with junctions.} 
+\begin{frame}[c,fragile]
+	\begin{block}{ How to deal with genome-mapped reads with junctions? }
+		\begin{itemize}
+			\item Only this step could not detect those reads with junctions in novo-lincRNA or a newly detected isoform for a known gene.\\ \pause
+			\item So here the reads were split into (readlen/25) \alert{segments}, (e.g, 4 parts for 101bp reads) then map to genome:
+		\end{itemize}
+	\end{block}
+\end{frame}
+\begin{frame}[c,fragile]
+	\begin{block}{ The \alert{junctional genome-mapped-reads} could be detected via: }
+		\begin{lstlisting}[basicstyle=\tiny]
+### input:  left_kept_reads.m2g_um_seg1.fq.z          
+     (right side, 2 3 4 are the same)
+### output: left_kept_reads.m2g_um_seg1.to_spliced.bam
+     (tran NO genome NO, first25bp genome YES)
+
+gzip -cd< $root_dir/left_kept_reads.m2g_um_seg1.fq.z | \
+bowtie2 -k 41 -N 1 -L 20 -p 8 --sam-no-hd              \
+    -x $bin_dir/segment_juncs -                      | \
+$bin_dir/fix_map_ordering                              \
+    --index-outfile $root_dir/left_kept_reads.m2g_um_seg1.to_spliced.bam.index \
+    --sam-header    $root_dir/segment_juncs.bwt.samheader.sam \
+    - $root_dir/left_kept_reads.m2g_um_seg1.to_spliced.bam
+		\end{lstlisting}
+	\end{block}
+\end{frame}
+\begin{frame}[c,fragile]
+	\begin{block}{ The \alert{junctional genome-mapped-reads} could be detected via: }
+		\begin{lstlisting}[basicstyle=\tiny]
+$bin/segment_juncs           #detect junctions
+$bin/juncs_db                #build fasta file for junctions
+$bin/long_spanning_reads     #merge the mapping information of the 4-parts mapping results.
+### one example in left_kept_reads.m2g_um.candidates.bam:
+#seg1
+662|0:0:4   0  chr2    110423264  0   25M          ...
+662|0:0:4   0  chr20   60962952   0   18M1I6M      ...
+
+#seg2
+662|25:1:4  0   chr20  60963371   32  25M          ...
+662|25:1:4  16  chr4   16257966   32  25M          ...
+
+#seg3
+662|50:2:4  0   chr20  60963396   255 25M          ...
+
+#seg4
+662|75:3:4  0   chr20  60963421   255 26M          ...
+
+#candidates:
+662         0   chr20  60962952   255 19M394N82M   ...
+		\end{lstlisting}
+	\end{block}
+\end{frame}
+
+
+\subsection{ After mapping: How to make good use of the tmp files? } 
+\begin{frame}[c,fragile]
+	\begin{block}{ Classify of reads in bam files: }
+		\begin{lstlisting}[basicstyle=\tiny]
+   transcriptome-mapped          Left      accepted.bam
+   genome-mapped                 Left      accepted.bam
+   genome-mapped-junction-reads  Left      accepted.bam
+   transcriptome-mapped          Right     accepted.bam
+   genome-mapped                 Right     accepted.bam
+   genome-mapped-junction-reads  Right     accepted.bam
+   unmapped                      OneSide   accepted.bam
+   unmapped                      TwoSides  unmapped.bam
+		\end{lstlisting}
+	\end{block}
+\end{frame}
+
+\begin{frame}[c,fragile]
+	\begin{block}{ In details: }
+		\begin{lstlisting}[basicstyle=\tiny]
+   L-transcriptome-mapped     left_kept_reads.m2g.bam               
+   L-genome-mapped            left_kept_reads.m2g_um.mapped.bam     
+   L-genome-mapped-junc-reads left_kept_reads.m2g_um.candidates.bam 
+   R-transcriptome-mapped     right_kept_reads.m2g.bam              
+   R-genome-mapped            right_kept_reads.m2g_um.mapped.bam
+   R-genome-mapped-junc-reads right_kept_reads.m2g_um.candidates.bam 
+   L-unmapped                 left.............m2g_um.unmapped.bam
+                                               m2g_um.candidates.bam
+   R-unmapped                 right............m2g_um.unmapped.bam
+                                               m2g_um.candidates.bam
+
+		\end{lstlisting}
+		For fusion data:
+		\begin{itemize}
+			\item PE1 and PE2 in L/R transcriptome-mapped file, but distally. \pause
+			\item PE1 and PE2.seg1, seg2  in L-transcriptome-mapped, \\PE2.seg4 in R-transcriptome-mapped distally. \\PE2.seg3 were fusion reads.
+		\end{itemize}
+	\end{block}
+\end{frame}
+
+\begin{frame}[c,fragile]
+	\begin{block}{ How to deal with \alert{transcriptome-unmapped} reads? }
+		\begin{itemize}
+			\item One possible method for detecting circular-RNA using Tophat. See https://github.com/YangLab/CIRCexplorer \\ \pause
+			\item For pair-end data, one possible method: https://github.com/hubqoaing/TanglabCircularRNAPipeline
+		\end{itemize}
+	\end{block}
+\end{frame}

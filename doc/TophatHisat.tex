@@ -1,0 +1,87 @@
+\documentclass[hyperref={pdfpagelabels=false},compress]{beamer} 
+\let\Tiny=\tiny
+\usepackage{lmodern}% http://ctan.org/pkg/lm
+\mode<presentation>
+{\usetheme{Berlin} \setbeamercovered{transparent}}
+\usetheme{Ilmenau}
+\usepackage{lipsum}
+\setbeamerfont*{section in head/foot}{size=\tiny}
+\setbeamerfont*{subsection in head/foot}{size=\large}
+
+\newlength\SubHt
+\settoheight\SubHt{\usebeamerfont{subsection in head/foot}S}
+\newlength\SubDh
+\settodepth\SubDh{\usebeamerfont{subsection in head/foot}g}
+
+\makeatletter
+\setbeamertemplate{headline}
+{%
+  \begin{beamercolorbox}[colsep=1.5pt]{upper separation line head}
+  \end{beamercolorbox}
+  \begin{beamercolorbox}{section in head/foot}
+    \vskip2pt\insertnavigation{\paperwidth}\vskip2pt
+  \end{beamercolorbox}%
+  \ifbeamer@theme@subsection%
+    \begin{beamercolorbox}[colsep=1.5pt]{middle separation line head}
+    \end{beamercolorbox}
+    \begin{beamercolorbox}[ht=1.5\SubHt,dp=1.5\SubDh,%defaults: ht=2.5ex,  dp=1.125ex
+      leftskip=.3cm,rightskip=.3cm plus1fil]{subsection in head/foot}
+      \usebeamerfont{subsection in head/foot}\insertsubsectionhead
+    \end{beamercolorbox}%
+  \fi%
+  \begin{beamercolorbox}[colsep=1.5pt]{lower separation line head}
+  \end{beamercolorbox}
+}
+\makeatother
+
+\usetheme{Ilmenau}
+\usepackage{amsmath} 
+\usepackage{amssymb} 
+\usepackage{graphicx}
+\usepackage{subfigure}
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage{tabularx,booktabs}
+
+\usepackage[utf8]{inputenc}
+\usepackage{hyperref}
+
+\usepackage[english]{babel}
+
+\setbeamerfont*{subsection in head/foot}{size=\large}
+\newcolumntype{C}[1]{>{\centering\arraybackslash}p{#1}}
+
+% Default fixed font does not support bold face
+\DeclareFixedFont{\ttb}{T1}{txtt}{bx}{n}{12} % for bold
+\DeclareFixedFont{\ttm}{T1}{txtt}{m}{n}{12}  % for normal
+
+\graphicspath{ {pdf/} }
+
+% Custom colors
+\usepackage{color}
+
+\lstset{classoffset=0,
+morekeywords={mkdir, cd, alias,ln,df, awk,ls,git,wget,cat, perl,echo, export,python,next,if,fi,then, for,my,return,tr,ps,do,done, top,substr,ord,length,qstat},
+keywordstyle=\color{blue},classoffset=1,
+morekeywords={sub,exit,function,def},keywordstyle=\color{red},classoffset=0,
+morecomment=[l][\color{teal}]{\#},
+basicstyle=\ttfamily\scriptsize,
+backgroundcolor=\color[rgb]{0.95,0.95,0.95},
+breaklines=true}
+
+\begin{document}
+%%-------------------------------------------------
+    \title{Comparison of Tophat and Hisat mapping results for real data.}
+    \author{Boqiang Hu}
+    \institute{ Laboratory of Stem Cells and Epigenetics, BIOPIC, Peking University }
+    \date{\today}
+    \begin{frame}
+    	 \titlepage
+    \end{frame}
+%%-------------------------------------------------
+
+\include{Tophat_pipeline}
+\include{parameters}
+\include{Compare}
+\section{END}
+\end{document}

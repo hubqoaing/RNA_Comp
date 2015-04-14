@@ -1,0 +1,188 @@
+\section{1.Running comparison analysis frame-work. } 
+\subsection{1. Build the analysis dictionary.}
+\begin{frame}[c,fragile]
+	\begin{block}{ First build the root\_dir. }
+		\begin{lstlisting}
+mkdir $root_dir && cd $root_dir
+		\end{lstlisting}
+	\end{block}
+	\pause
+	\begin{block}{ Download the scripts. Python required.}
+		All code for analysis were in my github.
+		\begin{lstlisting}
+git clone https://github.com/hubqoaing/RNA_Comp
+cd RNA_Comp
+		\end{lstlisting}
+	\end{block}
+\end{frame}
+
+\subsection{2. Download GSM981249 sra data.}
+\begin{frame}[c,fragile]
+	\begin{block}{ Download Raw data. }
+		\begin{lstlisting}
+mkdir -p 00.fastq/SRR534301
+cd       00.fastq/SRR534301
+wget ftp://ftp-trace.ncbi.nlm.nih.gov/sra/sra-instant/reads/ByExp/sra/SRX/SRX174/SRX174318/SRR534301/SRR534301.sra
+		\end{lstlisting}
+	\end{block}
+\end{frame}
+
+\subsection{3. Preparing the input files.}
+\begin{frame}[c,fragile]
+
+	\begin{block}{ Input reference. }
+Detailed information for input files could be reached in:
+\url{https://github.com/hubqoaing/RNA} \\
+To run Hisat, it was required to build a Hisat-index for the fasta reference.
+		\begin{lstlisting}
+hisat-build hg19_ERCC92_RGC.fa hg19_ERCC92_RGC.hisat
+		\end{lstlisting}
+	\end{block}
+	\pause
+	\begin{block}{ sample list. }
+		\begin{lstlisting}[basicstyle=\tiny]
+$ cat sample_GSM981249.xls
+sample_name		sample_brief_name		stage			sample_group	ERCC_times	RFP_polyA	GFP_polyA	CRE_polyA	data_type	rename
+SRR534301		test_SRR534301			RealData		RNA            0.0    		0.0    		0.0		   0.0		 	PE          SRR534301
+		\end{lstlisting}
+	\end{block}
+
+\end{frame}
+
+\subsection{4. Generate all scripts for mapping pipeline.}
+\begin{frame}[c,fragile]
+
+	\begin{block}{ Debug mode. Generate scripts but do not run it. }
+A python script could be written with the guidance of the README.md file. \\
+Run the following scripts to generate all shell scripts. Then check it by running step by step.
+		\begin{lstlisting}[basicstyle=\tiny]
+python run_mRNA.py                               \
+   --bt_index_base  hg19_ERCC92_RGC              \
+   --genome_gtf     hg19_ERCC92_RGC_refGene.gtf  \
+   --intragenic_bed region.Intragenic.bed        \
+   --refGene_hg19   ref.sort.txt                 \
+   --ercc_info      ercc.info.xls                \
+   --rmsk_gtf       region.Intragenic.filter.bed \
+   --genome_gtf_with_lncRNA  Early_Embroy_LncRNA_Pool.ERCC_RGCPolyA.sort.gtf  \
+   sample_GSM981249.xls
+		\end{lstlisting}
+	\end{block}
+\end{frame}
+
+
+\subsection{5. Scripts for mapping.}
+\begin{frame}[c,fragile]
+	\begin{block}{ 1. Tophat mapping to transcriptome first. }
+		\begin{lstlisting}[basicstyle=\tiny]
+$tophat_py                                       \
+   -p 8 -G $gtf_file                             \
+   --library-type fr-unstranded                  \    
+   --phred64-quals                               \
+   -o $tophat_dir/$brief_name                    \
+   $genome                                       \
+   $fq_dir/$samp_name/$samp_name.1.fq.gz         \
+   $fq_dir/$samp_name/$samp_name.2.fq.gz
+
+$samtools sort                                   \
+   -n $tophat_dir/$brief_name/accepted_hits.bam  \
+	   $tophat_dir/$brief_name/accepted_hits.order
+		\end{lstlisting}
+	\end{block}
+\end{frame}
+
+\begin{frame}[c,fragile]
+	\begin{block}{ 2. Tophat using the mannual in HISAT article. }
+		\begin{lstlisting}[basicstyle=\tiny]
+$tophat_py                                        \
+   -p 8                                           \
+   --read-edit-dist 3                             \
+   --read-realign-edit-dist 3                     \
+   --no-sort-bam                                  \
+   --phred64-quals                                \
+   -o $tophat_dir/$brief_name                     \
+   $genome                                        \
+   $fq_dir/$samp_name/$samp_name.1.fq.gz          \
+   $fq_dir/$samp_name/$samp_name.2.fq.gz
+
+$samtools sort                                    \
+   -n $tophat_dir/$brief_name/accepted_hits.bam   \
+	   $tophat_dir/$brief_name/accepted_hits.order
+		\end{lstlisting}
+	\end{block}
+\end{frame}
+
+\begin{frame}[c,fragile]
+	\begin{block}{ 3. Hisat mapping to transcriptome first. }
+		\begin{lstlisting}[basicstyle=\tiny]
+$hisat         -p 8 -x $genome --phred64          \
+   -1 $fq_dir/$samp_name/$samp_name.1.fq.gz       \
+   -2 $fq_dir/$samp_name/$samp_name.2.fq.gz       \
+   -S /dev/stdout                                 \
+   --known-splicesite-infile $splice_file         \
+   2>$hisat_dir/$brief_name/log                  |\
+awk '{if($1 ~ /^@/) print $0; else{ for(i=1;i<=NF;i++) if($i!~/^XS/) printf("%s\\t",$i);else XS0=$i;  XS1=((and($2, 0x10) && and($2, 0x40)) || (and($2,0x80) && !and($2,0x10)))?"XS:A:+":"XS:A:-"; print XS1 } }' | \
+awk '{if(length($10)==length($11)){print $0}}'   |\
+$samtools_exe view                                \
+   -Sb -q 1 -                                     \
+  >$hisat_dir/$brief_name/accepted_hits.raw.bam &&\
+$samtools_exe sort                                \
+   -m 2000000000                                  \
+   $hisat_dir/$brief_name/accepted_hits.raw.bam   \
+   $hisat_dir/$brief_name/accepted_hits		
+		\end{lstlisting}
+	\end{block}
+\end{frame}
+
+\begin{frame}[c,fragile]
+	\begin{block}{ 4. Hisat x2 using the mannual in HISAT article. }
+		\begin{lstlisting}[basicstyle=\tiny]
+$hisat         -p 8 -x $genome --phred64          \
+   -1 $fq_dir/$samp_name/$samp_name.1.fq.gz       \
+   -2 $fq_dir/$samp_name/$samp_name.2.fq.gz       \
+   -S /dev/null                                   \
+   --novel-splicesite-outfile $splice_file        \
+   2>$hisat_dir/$brief_name/log                && \
+$hisat         -p 8 -x $genome --phred64          \
+   -1 $fq_dir/$samp_name/$samp_name.1.fq.gz       \
+   -2 $fq_dir/$samp_name/$samp_name.2.fq.gz       \
+   -S /dev/stdout                                 \
+   --novel-splicesite-infile  $splice_file        \
+   2>$hisat_dir/$brief_name/log.2                |\
+awk '{if($1 ~ /^@/) print $0; else{ for(i=1;i<=NF;i++) if($i!~/^XS/) printf("%s\\t",$i);else XS0=$i;  XS1=((and($2, 0x10) && and($2, 0x40)) || (and($2,0x80) && !and($2,0x10)))?"XS:A:+":"XS:A:-"; print XS1 } }' | \
+awk '{if(length($10)==length($11)){print $0}}'   |\
+$samtools_exe view                                \
+   -Sb -q 1 -                                     \
+   >$hisat_dir/$brief_name/accepted_hits.raw.bam &&\
+$samtools_exe sort                                \
+  -m 2000000000                                   \
+  $hisat_dir/$brief_name/accepted_hits.raw.bam    \
+  $hisat_dir/$brief_name/accepted_hits
+		\end{lstlisting}
+	\end{block}
+\end{frame}
+
+
+
+\subsection{6. Running all scripts when no bug were detected.}
+\begin{frame}[c,fragile]
+
+	\begin{block}{ Running scripts in pipeline. }
+Removing the comments in \alert{running\_multi} function of \alert{module\_running\_jobs.py}. Run the code above again so that all scriptes could be run one by one.
+		\begin{lstlisting}[basicstyle=\tiny]
+python run_comp.py                                \
+   --bt_index_base  hg19_ERCC92_RGC               \
+   --genome_gtf     hg19_ERCC92_RGC_refGene.gtf   \
+   --intragenic_bed region.Intragenic.bed         \
+   --refGene_hg19   ref.sort.txt                  \
+   --ercc_info      ercc.info.xls                 \
+   --rmsk_gtf       region.Intragenic.filter.bed  \
+   --genome_gtf_with_lncRNA  Early_Embroy_LncRNA_Pool.ERCC_RGCPolyA.sort.gtf  \
+   sample_GSM981249.comp.xls
+		\end{lstlisting}
+	\end{block}
+\end{frame}
+
+
+
+
+\subsection{.}
