@@ -142,7 +142,7 @@ class matrix_cor(dict):
             ax = fig.add_subplot( len(l_fpkm_sample),len(l_fpkm_sample),i*len(l_fpkm_sample)+j+1 )
             if i==j:
                ax.plot( [0,10],[0,10],visible=False )
-               ax.text( 0.5,5,"%s" % (sam1) )
+#               ax.text( 0.5,5,"%s" % (sam1) )
                for sp in ax.spines.values():
                   sp.set_visible(False)
                ax.get_xaxis().set_ticks( [] )
@@ -160,7 +160,7 @@ class matrix_cor(dict):
                ax.set_ylim(-1,7)
             elif i>j:
                ax.plot( [0,10],[0,10],visible=False )
-               ax.text( 2,5,"r = %1.3f" % ( self['cor_mat'][j,i] ),fontsize=25 )
+               ax.text( 2,5,"r = %1.3f" % ( self['cor_mat'][j,i] ),fontsize=30 )
                ax.get_xaxis().set_ticks( [] )
                ax.get_yaxis().set_ticks( [] )
                ax.get_yaxis().set_ticklabels( [] )
