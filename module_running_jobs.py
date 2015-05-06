@@ -35,12 +35,12 @@ class running_jobs(object):
       log_file1 = "%s.%s.out" % (  self.sh_work_file, time.strftime("%Y-%m-%d_%H:%M:%S", time.localtime())  )
       log_file2 = "%s.%s.err" % (  self.sh_work_file, time.strftime("%Y-%m-%d_%H:%M:%S", time.localtime())  )
       shell_work = 'perl %s -cpu %d  %s >%s 2>%s' % ( self.multi, cpu,  self.sh_work_file, log_file1, log_file2 )
-#      p = subprocess.Popen(shell_work,shell='True')
-#      while 1:
-#         run_cnt = 0
-#         if p.poll() is None:
-#            run_cnt += 1
-#            time.sleep(3)
-#         if run_cnt == 0:
-#            break
+      p = subprocess.Popen(shell_work,shell='True')
+      while 1:
+         run_cnt = 0
+         if p.poll() is None:
+            run_cnt += 1
+            time.sleep(3)
+         if run_cnt == 0:
+            break
       
