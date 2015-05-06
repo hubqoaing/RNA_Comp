@@ -8,26 +8,17 @@ from matplotlib import pyplot as plt
 import scipy.stats
 import scipy.spatial.distance as distance
 import scipy.cluster.hierarchy as sch
+import pandas as pd 
 
 class matrix_cor(dict):
    def __init__(self,infile):
       self['infile'] = infile
    
    def load_matrix(self):
-      f_infile = open( self['infile'],"r" )
-      in_h = f_infile.readline()
-      in_h = in_h.strip('\n')
-      f_h  = in_h.split()
-      self['sample'] = f_h[1:]
-      
-      l_mat = []
-      for line in f_infile:
-         line = line.strip('\n')
-         f    = line.split()
-         l_mat.append(  np.array(f[1:],dtype=float)  )
-      f_infile.close()
-         
-      self['raw_matrix'] = np.array( l_mat,dtype=float )
+      df_RPKM = pd.read_csv(self['infile'],sep="\t", index_col=0)
+      self['sample'] = df_RPKM.columns
+            
+      self['raw_matrix'] = df_RPKM.values
    
    def get_samp_tag(self):
       self['l_stage'] = []
@@ -106,8 +97,8 @@ class matrix_cor(dict):
       np_corr = np.ones(  [len(self['sample']),len(self['sample'])]   )
       for i in range( 0,len(self['sample']) ):
          for j in range( i+1,len(self['sample']) ):
-            idx1 = (self['raw_matrix'][:,i] > 0.1)
-            idx2 = (self['raw_matrix'][:,j] > 0.1)
+            idx1 = (self['raw_matrix'][:,i] > 0.0001)
+            idx2 = (self['raw_matrix'][:,j] > 0.0001)
             idx  = idx1*idx2
 #            print >>sys.stderr, "Calculating %d and %d" % ( i,j )
             val_cor,p    = scipy.stats.pearsonr( np.log10(self['raw_matrix'][idx,i]),np.log10(self['raw_matrix'][idx,j]) )
@@ -155,9 +146,9 @@ class matrix_cor(dict):
 #               data1 = dat1[ (dat1>0.0001)+(dat2>0.0001) ]
 #               data2 = dat2[ (dat1>0.0001)+(dat2>0.0001) ]
 #               ax.hist2d( np.log10( data1+0.01), np.log10( data2+0.01), bins=50,cmap="Purples")
-               ax.plot( np.log10(self['raw_matrix'][:,i]+1), np.log10(self['raw_matrix'][:,j]+1),'.',color="#3857A2")
-               ax.set_xlim(-1,7)
-               ax.set_ylim(-1,7)
+               ax.plot( np.log10(self['raw_matrix'][:,i]+0.0001), np.log10(self['raw_matrix'][:,j]+0.0001),'.',color="#3857A2")
+               ax.set_xlim(-4,3)
+               ax.set_ylim(-4,3)
             elif i>j:
                ax.plot( [0,10],[0,10],visible=False )
                ax.text( 2,5,"r = %1.3f" % ( self['cor_mat'][j,i] ),fontsize=30 )
